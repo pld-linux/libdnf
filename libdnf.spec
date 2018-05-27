@@ -121,6 +121,21 @@ Test module for hawkey library.
 %description -n python3-hawkey-test -l pl.UTF-8
 Moduł testowy dla biblioteki hawkey.
 
+%package -n python-hawkey-apidocs
+Summary:	API documentation for Python hawkey module
+Summary(pl.UTF-8):	Dokumentacja API modułu Pythona hawkey
+Group:		Documentation
+Obsoletes:	hawkey-apidocs < 0.6.4-2
+%if "%{_rpmversion}" >= "5"
+BuildArch:	noarch
+%endif
+
+%description -n python-hawkey-apidocs
+API documentation for Python hawkey module.
+
+%description -n python-hawkey-apidocs -l pl.UTF-8
+Dokumentacja API modułu Pythona hawkey.
+
 %prep
 %setup -q
 %patch0 -p1
@@ -218,3 +233,7 @@ rm -rf $RPM_BUILD_ROOT
 %{py3_sitedir}/hawkey/test/__pycache__
 %attr(755,root,root) %{py3_sitedir}/hawkey/test/_hawkey_test.so
 %endif
+
+%files -n python-hawkey-apidocs
+%defattr(644,root,root,755)
+%doc build/docs/hawkey/html/{_static,*.html,*.js}
