@@ -1,0 +1,511 @@
+--- libdnf-0.11.1/CMakeLists.txt.orig	2017-10-16 09:00:54.000000000 +0200
++++ libdnf-0.11.1/CMakeLists.txt	2018-05-27 09:46:34.473778693 +0200
+@@ -30,6 +30,8 @@
+ PKG_CHECK_MODULES(GLIB gio-unix-2.0>=2.46.0 REQUIRED)
+ FIND_LIBRARY (RPMDB_LIBRARY NAMES rpmdb)
+ find_package (LibSolv 0.6.21 REQUIRED COMPONENTS ext)
++PKG_CHECK_MODULES(RPM rpm REQUIRED)
++include_directories (${RPM_INCLUDE_DIRS})
+ if (ENABLE_RHSM_SUPPORT)
+     pkg_check_modules (RHSM REQUIRED librhsm)
+     include_directories (${RHSM_INCLUDE_DIRS})
+@@ -56,13 +58,14 @@
+ 
+ # rpm:
+ FIND_LIBRARY (RPMDB_LIBRARY NAMES rpmdb)
+-IF (NOT RPMDB_LIBRARY)
+-  FIND_LIBRARY (RPMDB_LIBRARY NAMES rpm)
+-ENDIF (NOT RPMDB_LIBRARY)
++FIND_LIBRARY (RPMLIB_LIBRARY NAMES rpm)
+ FIND_LIBRARY (RPMIO_LIBRARY NAMES rpmio)
+ IF (RPMIO_LIBRARY)
+   SET(RPMDB_LIBRARY ${RPMIO_LIBRARY} ${RPMDB_LIBRARY})
+ ENDIF (RPMIO_LIBRARY)
++IF (RPMLIB_LIBRARY)
++  SET(RPMDB_LIBRARY ${RPMDB_LIBRARY} ${RPMLIB_LIBRARY})
++ENDIF (RPMLIB_LIBRARY)
+ 
+ ADD_DEFINITIONS(-DTESTDATADIR=\\"${CMAKE_SOURCE_DIR}/data/tests\\")
+ ADD_DEFINITIONS(-DPACKAGE_VERSION=\\"${LIBDNF_VERSION}\\")
+--- libdnf-0.11.1/libdnf/rpmorg-compat.h.orig	1970-01-01 01:00:00.000000000 +0100
++++ libdnf-0.11.1/libdnf/rpmorg-compat.h	2018-05-27 11:32:14.263706303 +0200
+@@ -0,0 +1,64 @@
++#ifndef RPMORG_COMPAT_H
++#define RPMORG_COMPAT_H
++
++#include <rpm/rpm46compat.h>
++
++#define _RPMVSF_NOSIGNATURES (RPMVSF_NODSAHEADER | RPMVSF_NORSAHEADER | RPMVSF_NODSA | RPMVSF_NORSA)
++#define	_RPMVSF_NODIGESTS (RPMVSF_NOSHA1HEADER | RPMVSF_NOMD5HEADER | RPMVSF_NOSHA1 | RPMVSF_NOMD5)
++
++static inline const char * headerGetString(Header h, int32_t tag)
++{
++    const char *res = NULL;
++    struct rpmtd_s td;
++
++    if (headerGet(h, tag, &td, HEADERGET_MINMEM)) {
++	if (rpmtdCount(&td) == 1) {
++	    res = rpmtdGetString(&td);
++	}
++	rpmtdFreeData(&td);
++    }
++    return res;
++}
++
++static inline uint64_t rpmtdGetNumber(rpmtd td)
++{
++    uint64_t val = 0;
++    int ix;
++    assert(td != NULL);
++    ix = (td->ix >= 0 ? td->ix : 0);
++
++    switch (td->type) {
++    case RPM_INT64_TYPE:
++	val = *((uint64_t *) td->data + ix);
++	break;
++    case RPM_INT32_TYPE:
++	val = *((uint32_t *) td->data + ix);
++	break;
++    case RPM_INT16_TYPE:
++	val = *((uint16_t *) td->data + ix);
++	break;
++    case RPM_INT8_TYPE:
++    case RPM_CHAR_TYPE:
++	val = *((uint8_t *) td->data + ix);
++	break;
++    default:
++	break;
++    }
++    return val;
++}
++
++static inline uint64_t headerGetNumber(Header h, int32_t tag)
++{
++    uint64_t res = 0;
++    struct rpmtd_s td;
++
++    if (headerGet(h, tag, &td, HEADERGET_EXT)) {
++	if (rpmtdCount(&td) == 1) {
++	    res = rpmtdGetNumber(&td);
++	}
++	rpmtdFreeData(&td);
++    }
++    return res;
++}
++
++#endif /* RPMORG_COMPAT_H */
+--- libdnf-0.11.1/libdnf/dnf-context.c.orig	2017-10-16 09:00:54.000000000 +0200
++++ libdnf-0.11.1/libdnf/dnf-context.c	2018-05-27 09:43:03.723781098 +0200
+@@ -32,7 +32,7 @@
+ 
+ 
+ #include <gio/gio.h>
+-#include <rpm/rpmlib.h>
++#include "rpmorg-compat.h"
+ #include <rpm/rpmmacro.h>
+ #include <rpm/rpmts.h>
+ #include <rpm/rpmdb.h>
+@@ -297,9 +297,9 @@
+         return priv->base_arch;
+ 
+     /* get info from RPM */
+-    rpmGetOsInfo(&value, NULL);
++    value = rpmExpand("%{_target_os}", NULL);
+     priv->os_info = g_strdup(value);
+-    rpmGetArchInfo(&value, NULL);
++    value = rpmExpand("%{_target_cpu}", NULL);
+     priv->arch_info = g_strdup(value);
+ 
+     /* find the base architecture */
+--- libdnf-0.11.1/libdnf/dnf-keyring.h.orig	2017-10-16 09:00:54.000000000 +0200
++++ libdnf-0.11.1/libdnf/dnf-keyring.h	2018-05-27 11:14:47.623718253 +0200
+@@ -24,14 +24,14 @@
+ 
+ #include <glib.h>
+ 
+-#include <rpm/rpmkeyring.h>
++#include <rpm/rpmts.h>
+ 
+-gboolean         dnf_keyring_add_public_key     (rpmKeyring              keyring,
++gboolean         dnf_keyring_add_public_key     (const rpmts            ts,
+                                                  const gchar            *filename,
+                                                  GError                 **error);
+-gboolean         dnf_keyring_add_public_keys    (rpmKeyring              keyring,
++gboolean         dnf_keyring_add_public_keys    (rpmts                   ts,
+                                                  GError                 **error);
+-gboolean         dnf_keyring_check_untrusted_file (rpmKeyring            keyring,
++gboolean         dnf_keyring_check_untrusted_file (
+                                                  const gchar            *filename,
+                                                  GError                 **error);
+ 
+--- libdnf-0.11.1/libdnf/dnf-keyring.c.orig	2017-10-16 09:00:54.000000000 +0200
++++ libdnf-0.11.1/libdnf/dnf-keyring.c	2018-05-27 11:15:39.210384333 +0200
+@@ -32,7 +32,9 @@
+ 
+ #include <stdlib.h>
+ #include <glib.h>
+-#include <rpm/rpmlib.h>
++#include "rpmorg-compat.h"
++#include <rpm/rpmcli.h>
++#include <rpm/rpmio.h>
+ #include <rpm/rpmts.h>
+ 
+ #include "dnf-types.h"
+@@ -52,7 +54,7 @@
+  * Since: 0.1.0
+  **/
+ gboolean
+-dnf_keyring_add_public_key(rpmKeyring keyring,
++dnf_keyring_add_public_key(const rpmts ts,
+                            const gchar *filename,
+                            GError **error)
+ {
+@@ -60,10 +62,7 @@
+     gint rc;
+     gsize len;
+     pgpArmor armor;
+-    pgpDig dig = NULL;
+-    rpmPubkey pubkey = NULL;
+     uint8_t *pkt = NULL;
+-    g_autofree gchar *data = NULL;
+ 
+     /* ignore symlinks and directories */
+     if (!g_file_test(filename, G_FILE_TEST_IS_REGULAR))
+@@ -71,13 +70,8 @@
+     if (g_file_test(filename, G_FILE_TEST_IS_SYMLINK))
+         goto out;
+ 
+-    /* get data */
+-    ret = g_file_get_contents(filename, &data, &len, error);
+-    if (!ret)
+-        goto out;
+-
+     /* rip off the ASCII armor and parse it */
+-    armor = pgpParsePkts(data, &pkt, &len);
++    armor = pgpReadPkts(filename, &pkt, &len);
+     if (armor < 0) {
+         ret = FALSE;
+         g_set_error(error,
+@@ -100,7 +94,7 @@
+     }
+ 
+     /* test each one */
+-    pubkey = rpmPubkeyNew(pkt, len);
++/*  pubkey = rpmPubkeyNew(pkt, len);
+     if (pubkey == NULL) {
+         ret = FALSE;
+         g_set_error(error,
+@@ -109,19 +103,19 @@
+                     "failed to parse public key for %s",
+                     filename);
+         goto out;
+-    }
++    } */
+ 
+     /* does the key exist in the keyring */
+-    dig = rpmPubkeyDig(pubkey);
++/*  dig = rpmPubkeyDig(pubkey);
+     rc = rpmKeyringLookup(keyring, dig);
+     if (rc == RPMRC_OK) {
+         ret = TRUE;
+         g_debug("%s is already present", filename);
+         goto out;
+-    }
++    } */
+ 
+     /* add to rpmdb automatically, without a prompt */
+-    rc = rpmKeyringAddKey(keyring, pubkey);
++    rc = rpmcliImportPubkey(ts, pkt, len);
+     if (rc == 1) {
+         ret = TRUE;
+         g_debug("%s is already added", filename);
+@@ -142,10 +136,10 @@
+ out:
+     if (pkt != NULL)
+         free(pkt); /* yes, free() */
+-    if (pubkey != NULL)
++/*  if (pubkey != NULL)
+         rpmPubkeyFree(pubkey);
+     if (dig != NULL)
+-        pgpFreeDig(dig);
++        pgpFreeDig(dig); */
+     return ret;
+ }
+ 
+@@ -161,7 +155,7 @@
+  * Since: 0.1.0
+  **/
+ gboolean
+-dnf_keyring_add_public_keys(rpmKeyring keyring, GError **error)
++dnf_keyring_add_public_keys(rpmts ts, GError **error)
+ {
+     const gchar *gpg_dir = "/etc/pki/rpm-gpg";
+     gboolean ret = TRUE;
+@@ -178,7 +172,7 @@
+         if (filename == NULL)
+             break;
+         path_tmp = g_build_filename(gpg_dir, filename, NULL);
+-        ret = dnf_keyring_add_public_key(keyring, path_tmp, error);
++        ret = dnf_keyring_add_public_key(ts, path_tmp, error);
+     } while (ret);
+     return TRUE;
+ }
+@@ -187,7 +181,7 @@
+  * dnf_keyring_check_untrusted_file:
+  */
+ gboolean
+-dnf_keyring_check_untrusted_file(rpmKeyring keyring,
++dnf_keyring_check_untrusted_file(
+                                  const gchar *filename,
+                                  GError **error)
+ {
+@@ -237,10 +231,10 @@
+     }
+ 
+     /* convert and upscale */
+-    headerConvert(hdr, HEADERCONV_RETROFIT_V3);
++/*  headerConvert(hdr, HEADERCONV_RETROFIT_V3); */
+ 
+     /* get RSA key */
+-    td = rpmtdNew();
++    td = malloc (sizeof (*td));
+     rc = headerGet(hdr,
+                    RPMTAG_RSAHEADER,
+                    td,
+@@ -265,7 +259,7 @@
+     }
+ 
+     /* make it into a digest */
+-    dig = pgpNewDig();
++    dig = rpmtsDig(ts);
+     rc = pgpPrtPkts(td->data, td->count, dig, 0);
+     if (rc != 0) {
+         g_set_error(error,
+@@ -277,7 +271,7 @@
+     }
+ 
+     /* does the key exist in the keyring */
+-    rc = rpmKeyringLookup(keyring, dig);
++    rc = rpmtsFindPubkey(ts, dig);
+     if (rc != RPMRC_OK) {
+         g_set_error(error,
+                     DNF_ERROR,
+@@ -292,15 +286,15 @@
+     ret = TRUE;
+ out:
+     if (dig != NULL)
+-        pgpFreeDig(dig);
++        dig = pgpDigFree(dig);
+     if (td != NULL) {
+         rpmtdFreeData(td);
+-        rpmtdFree(td);
++        free(td);
+     }
+     if (ts != NULL)
+-        rpmtsFree(ts);
++        ts = rpmtsFree(ts);
+     if (hdr != NULL)
+-        headerFree(hdr);
++        hdr = headerFree(hdr);
+     if (fd != NULL)
+         Fclose(fd);
+     return ret;
+--- libdnf-0.11.1/libdnf/dnf-rpmts.c.orig	2017-10-16 09:00:54.000000000 +0200
++++ libdnf-0.11.1/libdnf/dnf-rpmts.c	2018-05-27 11:19:52.157048112 +0200
+@@ -32,7 +32,8 @@
+ 
+ 
+ #include <glib.h>
+-#include <rpm/rpmlib.h>
++#define _RPMLOG_INTERNAL
++#include <rpm/rpm46compat.h>
+ #include <rpm/rpmlog.h>
+ #include <rpm/rpmdb.h>
+ 
+@@ -155,7 +156,7 @@
+     }
+ out:
+     Fclose(fd);
+-    headerFree(hdr);
++    hdr = headerFree(hdr);
+     return ret;
+ }
+ 
+@@ -231,10 +232,17 @@
+                               diskspace,
+                               generic_str);
+         break;
+-    case RPMPROB_OBSOLETES:
+-        str = g_strdup_printf("package %s is obsoleted by %s",
+-                              pkg_nevr,
+-                              pkg_nevr_alt);
++    case RPMPROB_RDONLY:
++        str = g_strdup_printf ("tried to install package on read-only filesystem");
++        break;
++    case RPMPROB_BADPRETRANS:
++        str = g_strdup_printf ("bad %%pretrans?"); // unimplemented acc. to rpmps.h
++        break;
++    case RPMPROB_BADPLATFORM:
++        str = g_strdup_printf ("package %s is for a different platform", pkg_nevr);
++        break;
++    case RPMPROB_NOREPACKAGE:
++        str = g_strdup_printf ("re-packaged package %s is missing", pkg_nevr);
+         break;
+     }
+     return str;
+@@ -297,7 +305,7 @@
+                         DNF_ERROR_INTERNAL_ERROR,
+                         "Error running transaction and no problems were reported!");
+ out:
+-    rpmpsFree(probs);
++    probs = rpmpsFree(probs);
+     return ret;
+ }
+ 
+@@ -310,11 +318,11 @@
+     GString **string =(GString **) data;
+ 
+     /* only log errors */
+-    if (rpmlogRecPriority(rec) != RPMLOG_ERR)
++    if (rec->pri != RPMLOG_ERR)
+         return RPMLOG_DEFAULT;
+ 
+     /* do not log internal BDB errors */
+-    if (g_strstr_len(rpmlogRecMessage(rec), -1, "BDB") != NULL)
++    if (g_strstr_len(rec->message, -1, "BDB") != NULL)
+         return 0;
+ 
+     /* create string if required */
+@@ -324,7 +332,7 @@
+     /* if text already exists, join them */
+     if ((*string)->len > 0)
+         g_string_append(*string, ": ");
+-    g_string_append(*string, rpmlogRecMessage(rec));
++    g_string_append(*string, rec->message);
+ 
+     /* remove the trailing /n which rpm does */
+     if ((*string)->len > 0)
+@@ -373,7 +381,7 @@
+     }
+ 
+     /* success */
+-    headerLink(hdr);
++    hdr = headerLink(hdr);
+ out:
+     rpmlogSetCallback(NULL, NULL);
+     if (iter != NULL)
+@@ -419,6 +427,6 @@
+     }
+ out:
+     if (hdr != NULL)
+-        headerFree(hdr);
++        hdr = headerFree(hdr);
+     return ret;
+ }
+--- libdnf-0.11.1/libdnf/dnf-repo.c.orig	2017-10-16 09:00:54.000000000 +0200
++++ libdnf-0.11.1/libdnf/dnf-repo.c	2018-05-27 11:21:27.687047021 +0200
+@@ -1501,15 +1501,12 @@
+                         GError **error)
+ {
+     gboolean ret;
+-    rpmKeyring keyring;
+     rpmts ts;
+ 
+     /* then import to rpmdb */
+     ts = rpmtsCreate();
+-    keyring = rpmtsGetKeyring(ts, 1);
+-    ret = dnf_keyring_add_public_key(keyring, tmp_path, error);
+-    rpmKeyringFree(keyring);
+-    rpmtsFree(ts);
++    ret = dnf_keyring_add_public_key(ts, tmp_path, error);
++    ts = rpmtsFree(ts);
+     return ret;
+ }
+ 
+--- libdnf-0.11.1/libdnf/dnf-transaction.c.orig	2017-10-16 09:00:54.000000000 +0200
++++ libdnf-0.11.1/libdnf/dnf-transaction.c	2018-05-27 11:31:42.767039995 +0200
+@@ -29,7 +29,7 @@
+  */
+ 
+ 
+-#include <rpm/rpmlib.h>
++#include "rpmorg-compat.h"
+ #include <rpm/rpmts.h>
+ #include <rpm/rpmlog.h>
+ 
+@@ -54,7 +54,6 @@
+ typedef struct
+ {
+     DnfDb              *db;
+-    rpmKeyring          keyring;
+     rpmts               ts;
+     DnfContext         *context;    /* weak reference */
+     GPtrArray          *repos;
+@@ -89,7 +88,6 @@
+ 
+     g_ptr_array_unref(priv->pkgs_to_download);
+     g_timer_destroy(priv->timer);
+-    rpmKeyringFree(priv->keyring);
+     rpmtsFree(priv->ts);
+ 
+     if (priv->db != NULL)
+@@ -354,7 +352,7 @@
+     }
+ 
+     /* check file */
+-    if (!dnf_keyring_check_untrusted_file(priv->keyring, fn, &error_local)) {
++    if (!dnf_keyring_check_untrusted_file(fn, &error_local)) {
+ 
+         /* probably an i/o error */
+         if (!g_error_matches(error_local,
+@@ -721,7 +719,6 @@
+         /* don't do anything */
+         break;
+ 
+-    case RPMCALLBACK_INST_STOP:
+     case RPMCALLBACK_UNINST_STOP:
+ 
+         /* phase complete */
+@@ -1195,7 +1192,7 @@
+ 
+     DnfTransactionPrivate *priv = GET_PRIVATE(transaction);
+     /* import all system wide GPG keys */
+-    if (!dnf_keyring_add_public_keys(priv->keyring, error))
++    if (!dnf_keyring_add_public_keys(priv->ts, error))
+         return FALSE;
+ 
+     /* import downloaded repo GPG keys */
+@@ -1208,7 +1205,7 @@
+             const char *pubkey = *iter;
+             if (g_file_test(pubkey, G_FILE_TEST_EXISTS)) {
+                 /* import */
+-                if (!dnf_keyring_add_public_key(priv->keyring, pubkey, error))
++                if (!dnf_keyring_add_public_key(priv->ts, pubkey, error))
+                     return FALSE;
+             }
+         }
+@@ -1307,15 +1304,7 @@
+ 
+     /* setup the transaction */
+     tmp = dnf_context_get_install_root(priv->context);
+-    rc = rpmtsSetRootDir(priv->ts, tmp);
+-    if (rc < 0) {
+-        ret = FALSE;
+-        g_set_error_literal(error,
+-                            DNF_ERROR,
+-                            DNF_ERROR_INTERNAL_ERROR,
+-                            "failed to set root");
+-        goto out;
+-    }
++    rpmtsSetRootDir(priv->ts, tmp);
+     rpmtsSetNotifyCallback(priv->ts,
+                            dnf_transaction_ts_progress_cb,
+                            transaction);
+@@ -1602,7 +1591,6 @@
+     g_object_add_weak_pointer(G_OBJECT(priv->context),(void **) &priv->context);
+     priv->ts = rpmtsCreate();
+     rpmtsSetRootDir(priv->ts, dnf_context_get_install_root(context));
+-    priv->keyring = rpmtsGetKeyring(priv->ts, 1);
+     priv->db = dnf_db_new(context);
+     /* propagate db enablement */
+     dnf_db_set_enabled(priv->db, dnf_context_get_yumdb_enabled(context));
