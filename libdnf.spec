@@ -3,12 +3,13 @@
 %bcond_without	apidocs	# do not build and package API docs
 %bcond_without	python3	# CPython 3.x module
 %bcond_with	rhsm	# Red Had Subscription Management support
+%bcond_with	rpm5	# build with rpm5
 #
 Summary:	Library providing simplified C and Python API to libsolv
 Summary(pl.UTF-8):	Biblioteka zapewniająca uproszczone API C i Pythona do libsolv
 Name:		libdnf
 Version:	0.11.1
-Release:	5
+Release:	6
 License:	LGPL v2.1+
 Group:		Libraries
 #Source0Download: https://github.com/rpm-software-management/libdnf/releases
@@ -25,7 +26,7 @@ BuildRequires:	librepo-devel
 %{?with_rhsm:BuildRequires:	librhsm-devel}
 BuildRequires:	libsolv-devel >= 0.6.21
 BuildRequires:	pkgconfig
-BuildRequires:	rpm-devel >= 5
+BuildRequires:	rpm-devel
 BuildRequires:	rpm-pythonprov
 BuildRequires:	rpmbuild(macros) >= 1.714
 BuildRequires:	sphinx-pdg
@@ -63,9 +64,7 @@ Pliki nagłówkowe biblioteki libdnf.
 Summary:	API documentation for libdnf library
 Summary(pl.UTF-8):	Dokumentacja API biblioteki libdnf
 Group:		Documentation
-%if "%{_rpmversion}" >= "5"
-BuildArch:	noarch
-%endif
+%{?noarchpackage}
 
 %description apidocs
 API documentation for libdnf library.
@@ -126,9 +125,7 @@ Summary:	API documentation for Python hawkey module
 Summary(pl.UTF-8):	Dokumentacja API modułu Pythona hawkey
 Group:		Documentation
 Obsoletes:	hawkey-apidocs < 0.6.4-2
-%if "%{_rpmversion}" >= "5"
-BuildArch:	noarch
-%endif
+%{?noarchpackage}
 
 %description -n python-hawkey-apidocs
 API documentation for Python hawkey module.
@@ -138,7 +135,7 @@ Dokumentacja API modułu Pythona hawkey.
 
 %prep
 %setup -q
-%patch0 -p1
+%{?with_rpm5:%patch0 -p1}
 
 %build
 export CFLAGS="%{rpmcflags} -D_GNU_SOURCE}"
