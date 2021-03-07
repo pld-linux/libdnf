@@ -64,7 +64,7 @@ Pliki nagłówkowe biblioteki libdnf.
 Summary:	API documentation for libdnf library
 Summary(pl.UTF-8):	Dokumentacja API biblioteki libdnf
 Group:		Documentation
-%{?noarchpackage}
+BuildArch:	noarch
 
 %description apidocs
 API documentation for libdnf library.
@@ -125,7 +125,7 @@ Summary:	API documentation for Python hawkey module
 Summary(pl.UTF-8):	Dokumentacja API modułu Pythona hawkey
 Group:		Documentation
 Obsoletes:	hawkey-apidocs < 0.6.4-2
-%{?noarchpackage}
+BuildArch:	noarch
 
 %description -n python-hawkey-apidocs
 API documentation for Python hawkey module.
