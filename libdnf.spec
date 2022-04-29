@@ -18,9 +18,9 @@ Source0:	https://github.com/rpm-software-management/libdnf/archive/%{version}/%{
 Patch0:		%{name}-rpm5.patch
 URL:		https://github.com/rpm-software-management/libdnf
 BuildRequires:	check-devel
-BuildRequires:	cmake >= 2.4
+BuildRequires:	cmake >= 2.8.5
 BuildRequires:	cppunit-devel
-BuildRequires:	gettext
+BuildRequires:	gettext-tools
 BuildRequires:	glib2-devel >= 1:2.46.0
 BuildRequires:	gobject-introspection-devel
 BuildRequires:	gpgme-devel
@@ -28,16 +28,18 @@ BuildRequires:	gtk-doc
 BuildRequires:	json-c-devel
 BuildRequires:	libmodulemd-devel >= 2.12.0
 BuildRequires:	librepo-devel >= 1.13.0
-%{?with_rhsm:BuildRequires:	librhsm-devel}
+%{?with_rhsm:BuildRequires:	librhsm-devel >= 0.0.3}
 BuildRequires:	libsmartcols-devel
 BuildRequires:	libsolv-devel >= 0.7.17
 BuildRequires:	openssl-devel
 BuildRequires:	pkgconfig
-BuildRequires:	rpm-devel
+BuildRequires:	rpm-build >= 4.6
+%{!?with_rpm5:BuildRequires:	rpm-devel >= 1:4.11.0}
+%{?with_rpm5:BuildRequires:	rpm-devel >= 5}
 BuildRequires:	rpm-pythonprov
 BuildRequires:	rpmbuild(macros) >= 1.714
 BuildRequires:	sphinx-pdg
-BuildRequires:	sqlite3-devel
+BuildRequires:	sqlite3-devel >= 3
 BuildRequires:	valgrind
 BuildRequires:	zchunk-devel >= 0.9.11
 Requires:	glib2 >= 1:2.46.0
@@ -62,9 +64,10 @@ Summary(pl.UTF-8):	Pliki nagłówkowe biblioteki libdnf
 Group:		Development/Libraries
 Requires:	%{name} = %{version}-%{release}
 Requires:	glib2-devel >= 1:2.46.0
-Requires:	librepo-devel
+Requires:	librepo-devel >= 1.13.0
 Requires:	libsolv-devel >= 0.7.17
-Requires:	rpm-devel
+%{!?with_rpm5:Requires:	rpm-devel >= 1:4.11.0}
+%{?with_rpm5:Requires:	rpm-devel >= 5}
 
 %description devel
 Header files for libdnf library.
