@@ -8,14 +8,15 @@
 Summary:	Library providing simplified C and Python API to libsolv
 Summary(pl.UTF-8):	Biblioteka zapewniająca uproszczone API C i Pythona do libsolv
 Name:		libdnf
-Version:	0.67.0
+Version:	0.70.0
 Release:	1
 License:	LGPL v2.1+
 Group:		Libraries
 #Source0Download: https://github.com/rpm-software-management/libdnf/releases
 Source0:	https://github.com/rpm-software-management/libdnf/archive/%{version}/%{name}-%{version}.tar.gz
-# Source0-md5:	85c11f8e69c68b62a605300602137663
-Patch0:		%{name}-rpm5.patch
+# Source0-md5:	e1abd04a23ca2fb35f0edda3a2e5556a
+Patch0:		%{name}-gpgme-pkgconfig.patch
+Patch1:		%{name}-rpm5.patch
 URL:		https://github.com/rpm-software-management/libdnf
 BuildRequires:	check-devel
 BuildRequires:	cmake >= 2.8.5
@@ -34,12 +35,14 @@ BuildRequires:	libsolv-devel >= 0.7.17
 BuildRequires:	openssl-devel
 BuildRequires:	pkgconfig
 BuildRequires:	rpm-build >= 4.6
-%{!?with_rpm5:BuildRequires:	rpm-devel >= 1:4.11.0}
+%{!?with_rpm5:BuildRequires:	rpm-devel >= 1:4.15.0}
 %{?with_rpm5:BuildRequires:	rpm-devel >= 5}
 BuildRequires:	rpm-pythonprov
 BuildRequires:	rpmbuild(macros) >= 1.714
 BuildRequires:	sphinx-pdg
 BuildRequires:	sqlite3-devel >= 3
+BuildRequires:	swig
+BuildRequires:	swig-python
 BuildRequires:	valgrind
 BuildRequires:	zchunk-devel >= 0.9.11
 Requires:	glib2 >= 1:2.46.0
@@ -66,7 +69,7 @@ Requires:	%{name} = %{version}-%{release}
 Requires:	glib2-devel >= 1:2.46.0
 Requires:	librepo-devel >= 1.13.0
 Requires:	libsolv-devel >= 0.7.17
-%{!?with_rpm5:Requires:	rpm-devel >= 1:4.11.0}
+%{!?with_rpm5:Requires:	rpm-devel >= 1:4.15.0}
 %{?with_rpm5:Requires:	rpm-devel >= 5}
 
 %description devel
@@ -174,7 +177,8 @@ Wiązania Pythona 3.x do biblioteki libdnf.
 
 %prep
 %setup -q
-%{?with_rpm5:%patch0 -p1}
+%patch0 -p1
+%{?with_rpm5:%patch1 -p1}
 
 %build
 export CFLAGS="%{rpmcflags} -D_GNU_SOURCE}"
