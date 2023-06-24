@@ -34,6 +34,12 @@ BuildRequires:	libsmartcols-devel
 BuildRequires:	libsolv-devel >= 0.7.17
 BuildRequires:	openssl-devel
 BuildRequires:	pkgconfig
+BuildRequires:	python
+BuildRequires:	python-modules
+%if %{with python3}
+BuildRequires:	python3
+BuildRequires:	python3-modules
+%endif
 BuildRequires:	rpm-build >= 4.6
 %{!?with_rpm5:BuildRequires:	rpm-devel >= 1:4.15.0}
 %{?with_rpm5:BuildRequires:	rpm-devel >= 5}
