@@ -49,7 +49,6 @@ BuildRequires:	sphinx-pdg
 BuildRequires:	sqlite3-devel >= 3
 BuildRequires:	swig
 BuildRequires:	swig-python
-BuildRequires:	valgrind
 BuildRequires:	zchunk-devel >= 0.9.11
 Requires:	glib2 >= 1:2.46.0
 Requires:	libsolv >= 0.7.17
