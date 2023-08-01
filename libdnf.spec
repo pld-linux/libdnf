@@ -8,13 +8,13 @@
 Summary:	Library providing simplified C and Python API to libsolv
 Summary(pl.UTF-8):	Biblioteka zapewniająca uproszczone API C i Pythona do libsolv
 Name:		libdnf
-Version:	0.70.1
+Version:	0.70.2
 Release:	1
 License:	LGPL v2.1+
 Group:		Libraries
 #Source0Download: https://github.com/rpm-software-management/libdnf/releases
 Source0:	https://github.com/rpm-software-management/libdnf/archive/%{version}/%{name}-%{version}.tar.gz
-# Source0-md5:	e120039c5dad35138002eda99efa2e02
+# Source0-md5:	5ac93fde7aab7625607635db0a2edf27
 Patch0:		%{name}-gpgme-pkgconfig.patch
 Patch1:		%{name}-rpm5.patch
 URL:		https://github.com/rpm-software-management/libdnf
