@@ -8,15 +8,14 @@
 Summary:	Library providing simplified C and Python API to libsolv
 Summary(pl.UTF-8):	Biblioteka zapewniająca uproszczone API C i Pythona do libsolv
 Name:		libdnf
-Version:	0.70.2
+Version:	0.71.0
 Release:	1
 License:	LGPL v2.1+
 Group:		Libraries
 #Source0Download: https://github.com/rpm-software-management/libdnf/releases
 Source0:	https://github.com/rpm-software-management/libdnf/archive/%{version}/%{name}-%{version}.tar.gz
-# Source0-md5:	5ac93fde7aab7625607635db0a2edf27
-Patch0:		%{name}-gpgme-pkgconfig.patch
-Patch1:		%{name}-rpm5.patch
+# Source0-md5:	98cab29196d2016e91070c1861486de3
+Patch0:		%{name}-rpm5.patch
 URL:		https://github.com/rpm-software-management/libdnf
 BuildRequires:	check-devel
 BuildRequires:	cmake >= 2.8.5
@@ -24,11 +23,10 @@ BuildRequires:	cppunit-devel
 BuildRequires:	gettext-tools
 BuildRequires:	glib2-devel >= 1:2.46.0
 BuildRequires:	gobject-introspection-devel
-BuildRequires:	gpgme-devel
 BuildRequires:	gtk-doc
 BuildRequires:	json-c-devel
 BuildRequires:	libmodulemd-devel >= 2.12.0
-BuildRequires:	librepo-devel >= 1.13.0
+BuildRequires:	librepo-devel >= 1.15.0
 %{?with_rhsm:BuildRequires:	librhsm-devel >= 0.0.3}
 BuildRequires:	libsmartcols-devel
 BuildRequires:	libsolv-devel >= 0.7.17
@@ -51,6 +49,7 @@ BuildRequires:	swig
 BuildRequires:	swig-python
 BuildRequires:	zchunk-devel >= 0.9.11
 Requires:	glib2 >= 1:2.46.0
+Requires:	librepo >= 1.15.0
 Requires:	libsolv >= 0.7.17
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
@@ -72,7 +71,7 @@ Summary(pl.UTF-8):	Pliki nagłówkowe biblioteki libdnf
 Group:		Development/Libraries
 Requires:	%{name} = %{version}-%{release}
 Requires:	glib2-devel >= 1:2.46.0
-Requires:	librepo-devel >= 1.13.0
+Requires:	librepo-devel >= 1.15.0
 Requires:	libsolv-devel >= 0.7.17
 %{!?with_rpm5:Requires:	rpm-devel >= 1:4.15.0}
 %{?with_rpm5:Requires:	rpm-devel >= 5}
@@ -182,8 +181,7 @@ Wiązania Pythona 3.x do biblioteki libdnf.
 
 %prep
 %setup -q
-%patch0 -p1
-%{?with_rpm5:%patch1 -p1}
+%{?with_rpm5:%patch0 -p1}
 
 %build
 export CFLAGS="%{rpmcflags} -D_GNU_SOURCE}"
