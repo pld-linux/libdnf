@@ -8,13 +8,13 @@
 Summary:	Library providing simplified C and Python API to libsolv
 Summary(pl.UTF-8):	Biblioteka zapewniająca uproszczone API C i Pythona do libsolv
 Name:		libdnf
-Version:	0.73.1
+Version:	0.73.3
 Release:	1
 License:	LGPL v2.1+
 Group:		Libraries
 #Source0Download: https://github.com/rpm-software-management/libdnf/releases
 Source0:	https://github.com/rpm-software-management/libdnf/archive/%{version}/%{name}-%{version}.tar.gz
-# Source0-md5:	c49cddcac15b2fa6f4eeb9112d8d7f95
+# Source0-md5:	f1b714f950ac43bce22eb4bcbc1fc575
 Patch0:		%{name}-rpm5.patch
 URL:		https://github.com/rpm-software-management/libdnf
 BuildRequires:	check-devel
@@ -296,6 +296,7 @@ rm -rf $RPM_BUILD_ROOT
 %dir %{py_sitedir}/libdnf
 %{py_sitedir}/libdnf/*.py[co]
 %attr(755,root,root) %{py_sitedir}/libdnf/*.so
+%{py_sitedir}/libdnf-%{version}.dist-info
 
 %files -n python3-libdnf
 %defattr(644,root,root,755)
@@ -303,3 +304,4 @@ rm -rf $RPM_BUILD_ROOT
 %{py3_sitedir}/libdnf/*.py
 %{py3_sitedir}/libdnf/__pycache__
 %attr(755,root,root) %{py3_sitedir}/libdnf/*.so
+%{py3_sitedir}/libdnf-%{version}.dist-info
