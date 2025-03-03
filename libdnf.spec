@@ -9,7 +9,7 @@ Summary:	Library providing simplified C and Python API to libsolv
 Summary(pl.UTF-8):	Biblioteka zapewniająca uproszczone API C i Pythona do libsolv
 Name:		libdnf
 Version:	0.73.3
-Release:	2
+Release:	3
 License:	LGPL v2.1+
 Group:		Libraries
 #Source0Download: https://github.com/rpm-software-management/libdnf/releases
@@ -51,6 +51,7 @@ BuildRequires:	zchunk-devel >= 0.9.11
 Requires:	glib2 >= 1:2.46.0
 Requires:	librepo >= 1.15.0
 Requires:	libsolv >= 0.7.17
+Obsoletes:	libhif < 1
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 # PyErr_Format(HyExc_Exception, e.what());
@@ -75,6 +76,8 @@ Requires:	librepo-devel >= 1.15.0
 Requires:	libsolv-devel >= 0.7.17
 %{!?with_rpm5:Requires:	rpm-devel >= 1:4.15.0}
 %{?with_rpm5:Requires:	rpm-devel >= 5}
+Obsoletes:	libhif-devel < 1
+Obsoletes:	libhif-static < 1
 
 %description devel
 Header files for libdnf library.
@@ -87,6 +90,7 @@ Summary:	API documentation for libdnf library
 Summary(pl.UTF-8):	Dokumentacja API biblioteki libdnf
 Group:		Documentation
 BuildArch:	noarch
+Obsoletes:	libhif-spidocs < 1
 
 %description apidocs
 API documentation for libdnf library.
