@@ -10,7 +10,7 @@ Summary:	Library providing simplified C and Python API to libsolv
 Summary(pl.UTF-8):	Biblioteka zapewniająca uproszczone API C i Pythona do libsolv
 Name:		libdnf
 Version:	0.76.0
-Release:	1
+Release:	2
 License:	LGPL v2.1+
 Group:		Libraries
 #Source0Download: https://github.com/rpm-software-management/libdnf/releases
@@ -191,10 +191,12 @@ Wiązania Pythona 3.x do biblioteki libdnf.
 %{?with_rpm5:%patch0 -p1}
 
 %build
+# .pc file generation expects relative CMAKE_INSTALL_LIBDIR
 export CFLAGS="%{rpmcflags} -D_GNU_SOURCE}"
 install -d build %{?with_python2:build-py2}
 cd build
 %cmake .. \
+	-DCMAKE_INSTALL_LIBDIR=%{_lib} \
 	%{?with_rhsm:-DENABLE_RHSM_SUPPORT=ON} \
 	-DPYTHON_DESIRED=3
 
@@ -204,6 +206,7 @@ cd build
 %if %{with python3}
 cd ../build-py2
 %cmake .. \
+	-DCMAKE_INSTALL_LIBDIR=%{_lib} \
 	%{?with_rhsm:-DENABLE_RHSM_SUPPORT=ON} \
 	-DPYTHON_DESIRED=2
 
